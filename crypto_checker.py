@@ -4,19 +4,22 @@ import urllib.request
 import json
 import subprocess
 
-with urllib.request.urlopen("https://api.coinmarketcap.com/v2/ticker/1027") as url:
-    data = json.loads(url.read().decode())
+ETHEREUM = 13.217855
+
+cryptos = [(1027, "Ethereum"), (1, "Bitcoin")]
+
+msg = ""
+for crypto in cryptos:
+    with urllib.request.urlopen("https://api.coinmarketcap.com/v2/ticker/{}".format(crypto[0])) as url:
+        data = json.loads(url.read().decode())
+        quotes = data["data"]["quotes"]["USD"]
+        msg += "{}\n".format(crypto[1]) + \
+               "------------------------------\n" + \
+               "Price: {:.2f}$\n".format(quotes["price"]) + \
+               "\n" + \
+               ("Total: {:.2f}$\n".format(float(quotes["price"]) * ETHEREUM) if crypto[1] == "Ethereum" else "") + \
+               "1h:    {}%\n".format(quotes["percent_change_1h"]) + \
+               "24h:   {}%\n".format(quotes["percent_change_24h"]) + \
+               "7d:    {}%\n\n".format(quotes["percent_change_7d"])
     
-    quotes = data["data"]["quotes"]["USD"]
-    price = quotes["price"]
-    percent_change_1h = quotes["percent_change_1h"]
-    percent_change_24h = quotes["percent_change_24h"]
-    percent_change_7d = quotes["percent_change_7d"]
-    
-    msg = "Price: {:.2f}$".format(price) + "\n" + \
-          "\n" + \
-          "1h:    {}%".format(percent_change_1h) + "\n" + \
-          "24h:   {}%".format(percent_change_24h) + "\n" + \
-          "7d:    {}%".format(percent_change_7d)
-          
-    subprocess.run(["/usr/bin/notify-send", "Ethereum Performance", msg])
+subprocess.run(["/usr/bin/notify-send", "Crypto Checker", msg])
