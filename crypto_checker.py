@@ -1,25 +1,43 @@
 #!/usr/bin/env python3
 
-import urllib.request
+from requests import Request, Session
 import json
 import subprocess
+import sys
+import configparser
 
-ETHEREUM = 13.217855
+config = configparser.ConfigParser()
+config.read('config.ini')
 
-cryptos = [(1027, "Ethereum"), (1, "Bitcoin")]
+MY_ETH = float(config["DEFAULT"]["MY_ETH"])
+CRYPTOS =  ["ETH", "BTC"]
+URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+HEADERS = {
+    'Accepts': 'application/json',
+    'X-CMC_PRO_API_KEY': config["DEFAULT"]["API_KEY"],
+}
 
-msg = ""
-for crypto in cryptos:
-    with urllib.request.urlopen("https://api.coinmarketcap.com/v2/ticker/{}".format(crypto[0])) as url:
-        data = json.loads(url.read().decode())
-        quotes = data["data"]["quotes"]["USD"]
-        msg += "{}\n".format(crypto[1]) + \
+session = Session()
+session.headers.update(HEADERS)
+
+try:
+    msg = ""
+    for crypto in CRYPTOS:
+        parameters = {
+            'symbol': crypto
+        }
+        response = session.get(URL, params=parameters)
+        data = json.loads(response.text)
+        quotes = data["data"][crypto]["quote"]["USD"]
+        msg += "{}\n".format(crypto) + \
                "------------------------------\n" + \
                "Price: {:.2f}$\n".format(quotes["price"]) + \
                "\n" + \
-               ("Total: {:.2f}$\n".format(float(quotes["price"]) * ETHEREUM) if crypto[1] == "Ethereum" else "") + \
+               ("Total: {:.2f}$\n".format(float(quotes["price"]) * MY_ETH) if crypto == "ETH" else "") + \
                "1h:    {}%\n".format(quotes["percent_change_1h"]) + \
                "24h:   {}%\n".format(quotes["percent_change_24h"]) + \
                "7d:    {}%\n\n".format(quotes["percent_change_7d"])
     
-subprocess.run(["/usr/bin/notify-send", "Crypto Checker", msg])
+    subprocess.run(["/usr/bin/notify-send", "Crypto Checker", msg])
+except Exception as e:
+    subprocess.run(["/usr/bin/notify-send", "Crypto Checker", str(e)])
