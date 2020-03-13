@@ -5,16 +5,18 @@ import json
 import subprocess
 import sys
 import configparser
+import pathlib
 
+config_path = str(pathlib.Path(__file__).parent.absolute()) + '/config.ini'
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read(config_path)
 
 MY_ETH = float(config["DEFAULT"]["MY_ETH"])
 CRYPTOS =  ["ETH", "BTC"]
 URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
 HEADERS = {
     'Accepts': 'application/json',
-    'X-CMC_PRO_API_KEY': config["DEFAULT"]["API_KEY"],
+    'X-CMC_PRO_API_KEY': config["DEFAULT"]["API_KEY"]
 }
 
 session = Session()
