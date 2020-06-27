@@ -12,7 +12,8 @@ config = configparser.ConfigParser()
 config.read(config_path)
 
 MY_ETH = float(config["DEFAULT"]["MY_ETH"])
-CRYPTOS =  ["ETH", "BTC"]
+CRYPTOS = ['ETH', 'BTC']
+FIATS = ['USD', 'EUR']
 URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
 HEADERS = {
     'Accepts': 'application/json',
@@ -23,22 +24,28 @@ session = Session()
 session.headers.update(HEADERS)
 
 try:
+    quotes = {}
     msg = ""
     for crypto in CRYPTOS:
-        parameters = {
-            'symbol': crypto
-        }
-        response = session.get(URL, params=parameters)
-        data = json.loads(response.text)
-        quotes = data["data"][crypto]["quote"]["USD"]
+        quotes[crypto] = {}
+        for fiat in FIATS:
+            params = {
+                'symbol': crypto,
+                'convert': fiat # only one fiat per request
+            }
+            response = session.get(URL, params=params)
+            data = json.loads(response.text)
+            quotes[crypto][fiat] = data["data"][crypto]["quote"][fiat]
+
+
         msg += "{}\n".format(crypto) + \
                "------------------------------\n" + \
-               "Price: {:.2f}$\n".format(quotes["price"]) + \
+               "Price: {:.2f}€\n".format(quotes[crypto]['EUR']["price"]) + \
+               "Price: {:.2f}$\n".format(quotes[crypto]['USD']["price"]) + \
                "\n" + \
-               ("Total: {:.2f}$\n".format(float(quotes["price"]) * MY_ETH) if crypto == "ETH" else "") + \
-               "1h:    {}%\n".format(quotes["percent_change_1h"]) + \
-               "24h:   {}%\n".format(quotes["percent_change_24h"]) + \
-               "7d:    {}%\n\n".format(quotes["percent_change_7d"])
+                "1h:    {}%\n".format(quotes[crypto]['USD']["percent_change_1h"]) + \
+                "24h:   {}%\n".format(quotes[crypto]['USD']["percent_change_24h"]) + \
+                "7d:    {}%\n\n".format(quotes[crypto]['USD']["percent_change_7d"])
     
     subprocess.run(["/usr/bin/notify-send", "Crypto Checker", msg])
 except Exception as e:
